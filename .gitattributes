@@ -1,0 +1,12 @@
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.ini text eol=crlf
+
+*.zip binary
+*.bin binary
+*.BIN binary
+*.nb0 binary
+*.NB0 binary
+*.pdb binary
+*.PDB binary

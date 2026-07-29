@@ -1,0 +1,39 @@
+# Copy this file to .r2_token and fill in real values.
+#
+# pull.py only needs R2_PUBLIC_BASE_URL. This must be the public/custom
+# object URL, not the private S3 API endpoint.
+# push.py needs the S3 API credentials and bucket values.
+
+# Examples:
+# R2_PUBLIC_BASE_URL=https://pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev
+# R2_PUBLIC_BASE_URL=https://downloads.example.com/cerf
+R2_PUBLIC_BASE_URL=
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=cerf-bundles
+
+# Optional. Use when the bucket is shared and CERF objects live under a prefix.
+# R2_PREFIX=cerf
+
+# Optional. Defaults to https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
+# R2_ENDPOINT=
+
+# Optional. R2 normally uses auto.
+# R2_REGION=auto
+
+# Optional. Public contact address for illegal redistribution / DMCA / takedown complaints.
+# ABUSE_EMAIL=my@email.com
+ABUSE_EMAIL=
+
+# analytics.py only. Cloudflare GraphQL Analytics API credentials, used to read
+# per-file download counts for the R2 custom domain's zone. These are separate
+# from the R2 S3 keys above.
+#
+# CF_API_TOKEN: a Cloudflare API token (dash.cloudflare.com -> My Profile ->
+#   API Tokens) scoped to Zone -> Analytics -> Read for the download zone.
+# CF_ZONE_ID: the Zone ID of the domain that serves downloads (zone Overview
+#   page, right sidebar). For cerf.dz3n.net / cerf-bundles.dz3n.net this is the
+#   dz3n.net zone.
+CF_API_TOKEN=
+CF_ZONE_ID=

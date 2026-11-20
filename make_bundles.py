@@ -86,8 +86,11 @@ def rom_files_from_cerf(rom_dir: Path, cerf_json: dict | None) -> list[Path]:
     if not cerf_json:
         raise BundleError(f"{rom_dir.name}: cerf.json is required to select ROM files")
     rom = cerf_json.get("rom")
-    if not isinstance(rom, dict) or not rom.get("primary"):
-        raise BundleError(f"{rom_dir.name}: cerf.json is missing rom.primary")
+    storage = cerf_json.get("storage")
+    has_primary = isinstance(rom, dict) and bool(rom.get("primary"))
+    has_storage = isinstance(storage, dict) and any(storage.values())
+    if not has_primary and not has_storage:
+        raise BundleError(f"{rom_dir.name}: cerf.json names neither rom.primary nor a storage file")
 
     names: list[tuple[str, str]] = []
     for block_name in ROM_ZIP_BLOCKS:

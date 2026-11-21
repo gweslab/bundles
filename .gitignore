@@ -1,4 +1,5 @@
 data/
+/index.html
 .r2_token
 .r2.env
 analytics_db.json

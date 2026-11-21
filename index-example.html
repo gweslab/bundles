@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Windows CE ROM images</title>
+    <meta
+      name="description"
+      content="Preservation archive for Windows CE ROM images compatible with CE Runtime Foundation (CERF)"
+    />
+    <style>
+      :root {
+        --primary: #6554af;
+        --secondary: #e966a0;
+        --bg: #f3f1f7;
+        --text: #1b1922;
+        --text-muted: rgba(27, 25, 34, 0.6);
+        --text-soft: rgba(27, 25, 34, 0.85);
+        --hairline: rgba(27, 25, 34, 0.1);
+        --glass-bg: rgba(255, 255, 255, 0.55);
+        --glass-border: rgba(27, 25, 34, 0.1);
+        --glass-border-strong: rgba(27, 25, 34, 0.18);
+        --button-bg: rgba(27, 25, 34, 0.06);
+        --good: #3fb950;
+        --caution: #8a5a00;
+        --bad: #c42b1c;
+        --on-color: #ffffff;
+        --on-color-muted: rgba(255, 255, 255, 0.75);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #19171c;
+          --text: #e1e0ff;
+          --text-muted: rgba(225, 224, 255, 0.65);
+          --text-soft: rgba(225, 224, 255, 0.85);
+          --hairline: rgba(255, 255, 255, 0.08);
+          --glass-bg: rgba(0, 0, 0, 0.06);
+          --glass-border: rgba(255, 255, 255, 0.08);
+          --glass-border-strong: rgba(255, 255, 255, 0.15);
+          --button-bg: rgba(255, 255, 255, 0.06);
+          --caution: #ffb900;
+          --bad: #f48771;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--bg);
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          15px/1.5 Inter,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        font-feature-settings: "calt" 0;
+      }
+      a {
+        color: var(--secondary);
+      }
+      main {
+        max-width: 76rem;
+        margin: 0 auto;
+        padding: 2.5rem 1rem 3rem;
+      }
+      h1 {
+        margin: 0 0 0.3rem;
+        font-size: 1.9rem;
+        line-height: 1.2;
+      }
+      .intro {
+        margin: 0 0 1.4rem;
+        color: var(--text-muted);
+      }
+      .repo {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.4rem;
+      }
+      .repo label {
+        width: 100%;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .repo input {
+        flex: 1 1 14rem;
+        max-width: 26rem;
+        font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+      }
+      input[type="text"],
+      input[type="search"] {
+        padding: 0.45rem 0.65rem;
+        border: 1px solid var(--glass-border-strong);
+        border-radius: 0.4rem;
+        background: var(--glass-bg);
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+      input[type="search"] {
+        font-family: inherit;
+      }
+      button {
+        padding: 0.45rem 0.9rem;
+        border: 1px solid var(--glass-border-strong);
+        border-radius: 0.4rem;
+        background: var(--primary);
+        color: var(--on-color);
+        font: inherit;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 1rem;
+        margin-bottom: 1rem;
+      }
+      .filters input[type="search"] {
+        flex: 1 1 14rem;
+        max-width: 26rem;
+      }
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.9rem;
+        color: var(--text-soft);
+        cursor: pointer;
+      }
+      .toggle input {
+        width: 1rem;
+        height: 1rem;
+        margin: 0;
+        accent-color: var(--primary);
+        cursor: pointer;
+      }
+      .count {
+        margin-left: auto;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      input:focus-visible,
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 1px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+        gap: 0.9rem;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        overflow: hidden;
+        padding: 0.75rem 0.85rem;
+        border: 1px solid var(--glass-border);
+        border-radius: 0.4rem;
+        background: var(--glass-bg);
+      }
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.5rem;
+        margin: -0.75rem -0.85rem 0.1rem;
+        padding: 0.55rem 0.85rem;
+        background: var(--tint);
+        color: var(--on-color);
+      }
+      .title {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .name {
+        font-weight: 700;
+      }
+      .family {
+        font-size: 0.78rem;
+        color: var(--on-color-muted);
+      }
+      .year {
+        flex: none;
+        font-size: 0.85rem;
+        color: var(--on-color-muted);
+      }
+      .rom {
+        font-weight: 600;
+        font-size: 0.92rem;
+      }
+      .detail,
+      .source {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .support {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.2rem 0.8rem;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .clause {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .dot.good {
+        background: var(--good);
+      }
+      .dot.caution {
+        background: var(--caution);
+      }
+      .dot.bad {
+        background: var(--bad);
+      }
+      .downloads {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: auto;
+        padding-top: 0.3rem;
+      }
+      .download {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--glass-border-strong);
+        border-radius: 999px;
+        background: var(--button-bg);
+        color: var(--text);
+        font-size: 0.82rem;
+        text-decoration: none;
+      }
+      .download:hover {
+        border-color: var(--primary);
+      }
+      .download span {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+      }
+      .empty {
+        margin: 2rem 0;
+        text-align: center;
+        color: var(--text-muted);
+      }
+      footer {
+        margin-top: 2.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--hairline);
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      footer p {
+        margin: 0;
+      }
+      .takedown:has(a[href="mailto:"]) {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Windows CE ROM images</h1>
+      <p class="intro">
+        A preservation archive of Windows CE ROM images. Compatible with
+        <a href="https://cerf.cx" rel="noopener"
+          >CE Runtime Foundation</a
+        >
+        emulator.
+      </p>
+      <div class="repo">
+        <label for="repo-url">Copy this URL into Device Manager to browse these inside the emulator:</label>
+        <input id="repo-url" type="text" value="%REPOSITORY_URL%" readonly />
+        <button type="button" class="copy" hidden>Copy</button>
+      </div>
+      <div class="filters" hidden>
+        <input type="search" placeholder="Search" aria-label="Search" />
+        <label class="toggle"
+          ><input
+            type="checkbox"
+            data-support="supported"
+            checked
+          />Supported</label
+        >
+        <label class="toggle"
+          ><input
+            type="checkbox"
+            data-support="unsupported"
+            checked
+          />Unsupported</label
+        >
+        <span class="count">%ROM_COUNT% ROMs</span>
+      </div>
+      <div class="grid">%ROM_CARDS%</div>
+      <p class="empty" hidden>No ROMs match.</p>
+      <footer>
+        <p>%ROM_COUNT% ROM bundles · updated %UPDATED%</p>
+        <p class="takedown">
+          Copyright and takedown requests:
+          <a href="mailto:%ABUSE_EMAIL%">%ABUSE_EMAIL%</a>
+        </p>
+      </footer>
+    </main>
+    <script>
+      (function () {
+        var field = document.getElementById("repo-url");
+        var copy = document.querySelector(".repo .copy");
+        function copied() {
+          copy.textContent = "Copied";
+          setTimeout(function () {
+            copy.textContent = "Copy";
+          }, 1500);
+        }
+        function fallback() {
+          field.select();
+          document.execCommand("copy");
+          copied();
+        }
+        copy.addEventListener("click", function () {
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(field.value).then(copied, fallback);
+          } else {
+            fallback();
+          }
+        });
+        copy.hidden = false;
+
+        var filters = document.querySelector(".filters");
+        var search = filters.querySelector('input[type="search"]');
+        var toggles = filters.querySelectorAll('input[type="checkbox"]');
+        var count = filters.querySelector(".count");
+        var empty = document.querySelector(".empty");
+        var cards = Array.prototype.slice.call(
+          document.querySelectorAll(".card"),
+        );
+
+        function apply() {
+          var shown = {};
+          toggles.forEach(function (toggle) {
+            shown[toggle.dataset.support] = toggle.checked;
+          });
+          var words = search.value.toLowerCase().split(/\s+/).filter(Boolean);
+          var visible = 0;
+          cards.forEach(function (item) {
+            var haystack = item.dataset.search;
+            var match =
+              shown[item.dataset.support] &&
+              words.every(function (word) {
+                return haystack.indexOf(word) !== -1;
+              });
+            item.hidden = !match;
+            if (match) visible++;
+          });
+          count.textContent =
+            visible === cards.length
+              ? cards.length + " ROMs"
+              : visible + " of " + cards.length + " ROMs";
+          empty.hidden = visible !== 0;
+        }
+
+        search.addEventListener("input", apply);
+        toggles.forEach(function (toggle) {
+          toggle.addEventListener("change", apply);
+        });
+        filters.hidden = false;
+        apply();
+      })();
+    </script>
+  </body>
+</html>

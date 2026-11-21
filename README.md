@@ -27,6 +27,8 @@ is the remote copy.
 ## Requirements
 
 - Python 3.9 or newer. The scripts use only the standard library.
+- Git. The `sad` compiler is a submodule of this repository. Clone with
+  `git clone --recursive`, or run `git submodule update --init` after the clone.
 - A Cloudflare account with R2 enabled.
 - Disk space for the ROM files and their archives. The build keeps each
   archive next to its source files. Thus, plan for approximately two times the
@@ -87,6 +89,8 @@ Optional keys:
 | `R2_ENDPOINT` | `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com` | The S3 API endpoint. |
 | `R2_REGION` | `auto` | The S3 region. R2 uses `auto`. |
 | `ABUSE_EMAIL` | none | The public contact address for complaints about illegal redistribution, DMCA notices, and takedown requests. The build copies it into `manifest.json`. |
+| `REPOSITORY_URL` | none | The repository URL that the web page shows, for example `https://roms.win`. `make_index.py` needs it. |
+| `R2_MIN_UPLOAD_KBPS` | `128` | The minimum upload speed in KB/s. If an upload stays slower, `push.py` stops it and tries again. `0` turns off this limit. |
 
 > **CAUTION:** If you set `R2_PREFIX`, add the same prefix to
 > `R2_PUBLIC_BASE_URL`. The scripts add the prefix only to uploads. For
@@ -294,6 +298,28 @@ that package.
 | `--workers N` | The number of parallel build workers. The default is the smaller of the CPU count and the bundle count. Use `1` for one bundle at a time. |
 | `--force` | Make all archives again and ignore `.build_cache.json`. |
 
+### The web page (optional)
+
+The web page lists the ROMs of the manifest.
+
+```sh
+python gen_db.py
+python make_index.py
+```
+
+`make_index.py` writes `data/index.html` from the template `index.html`. If
+`index.html` is not present, it uses `index-example.html`. To make your own
+template, copy `index-example.html` to `index.html` and change the copy. Git
+ignores `index.html`.
+
+`index-example.html` uses all placeholders that the script replaces. A template
+must contain `%ROM_CARDS%`.
+
+`gen_db.py` takes the board database from the published `libCerfCore` on
+GitHub, not from a local checkout.
+
+If `data/index.html` is present, `push.py` uploads it next to `manifest.json`.
+
 ---
 
 ## Step 5 — Publish
@@ -313,8 +339,9 @@ each `cerf.json`.
 
 Then `push.py` deletes each object under `roms/` that the manifest does not
 list. For example, if you delete a bundle folder and run `push.py`, the bundle
-disappears from R2. `push.py` does not change objects outside `roms/` and
-`manifest.json`, for example `analytics.json`.
+disappears from R2. If `data/index.html` is not present, `push.py` also deletes
+the published `index.html`. `push.py` does not change objects outside `roms/`,
+`manifest.json`, and `index.html`, for example `analytics.json`.
 
 | Flag | Result |
 |---|---|
@@ -333,8 +360,8 @@ disappears from R2. `push.py` does not change objects outside `roms/` and
 python orchestrate.py
 ```
 
-This command runs `make_bundles.py` and then `push.py`. It stops at the first
-failure.
+This command builds the bundles and the web page, and then publishes them. It
+stops at the first failure.
 
 ---
 
@@ -344,6 +371,7 @@ The public URLs are relative to `R2_PUBLIC_BASE_URL`:
 
 ```
 /manifest.json
+/index.html                      (optional, refer to "The web page")
 /roms/<bundle>/rom.zip
 /roms/<bundle>/<source>.zip
 /analytics.json                  (optional, refer to "Download analytics")

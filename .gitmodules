@@ -1,0 +1,3 @@
+[submodule "sad"]
+	path = sad
+	url = https://github.com/dz333n/sad.git

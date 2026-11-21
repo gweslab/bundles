@@ -22,6 +22,14 @@ R2_BUCKET=cerf-bundles
 # Optional. R2 normally uses auto.
 # R2_REGION=auto
 
+# Optional. push.py retries an upload that stays slower than this many KB/s
+# for 30 seconds. 0 turns off the limit. Default 128.
+# R2_MIN_UPLOAD_KBPS=128
+
+# make_index.py only. The URL that users enter in CERF, shown on the web page.
+# REPOSITORY_URL=https://roms.example.com
+REPOSITORY_URL=
+
 # Optional. Public contact address for illegal redistribution / DMCA / takedown complaints.
 # ABUSE_EMAIL=my@email.com
 ABUSE_EMAIL=

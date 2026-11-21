@@ -10,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 STEPS = (
     ("Build bundles", "make_bundles.py"),
+    ("Compile board database", "gen_db.py"),
+    ("Build web page", "make_index.py"),
     ("Publish to R2", "push.py"),
 )
 

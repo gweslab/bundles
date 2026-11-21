@@ -6,13 +6,16 @@ import argparse
 import datetime as dt
 import hashlib
 import hmac
+import http.client
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from pathlib import Path
 
 from make_bundles import MANIFEST_VERSION
@@ -22,14 +25,45 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 ROMS_DIR = DATA_DIR / "roms"
 MANIFEST_PATH = DATA_DIR / "manifest.json"
+INDEX_PATH = DATA_DIR / "index.html"
 TOKEN_PATH = ROOT / ".r2_token"
 UPLOAD_PREFIXES = ("roms/",)
-UPLOAD_FILES = ("manifest.json",)
+UPLOAD_FILES = ("manifest.json", "index.html")
 PUBLIC_USER_AGENT = "CERF-Bundles/1.0"
+REQUEST_TIMEOUT = 60
+REQUEST_ATTEMPTS = 5
+RETRY_STATUS = (429, 500, 502, 503, 504)
+UPLOAD_CHUNK = 64 * 1024
+RATE_WINDOW = 30
+DEFAULT_MIN_UPLOAD_KBPS = 128
 
 
 class PushError(RuntimeError):
     pass
+
+
+class RetryableError(PushError):
+    pass
+
+
+def paced_body(body: bytes, min_rate: int) -> Iterator[memoryview]:
+    view = memoryview(body)
+    window_start = time.monotonic()
+    window_bytes = 0
+    for offset in range(0, len(view), UPLOAD_CHUNK):
+        chunk = view[offset:offset + UPLOAD_CHUNK]
+        yield chunk
+        window_bytes += len(chunk)
+        now = time.monotonic()
+        elapsed = now - window_start
+        if elapsed >= RATE_WINDOW:
+            rate = window_bytes / elapsed
+            if min_rate and rate < min_rate:
+                raise TimeoutError(
+                    f"upload slower than {min_rate // 1024} KB/s "
+                    f"({rate / 1024:.0f} KB/s over {elapsed:.0f}s)"
+                )
+            window_start, window_bytes = now, 0
 
 
 def load_config() -> dict[str, str]:
@@ -134,6 +168,8 @@ def upload_items_from_manifest(manifest: dict) -> list[tuple[str, Path]]:
                     )
                 items.append((package_path, local_package))
 
+    if INDEX_PATH.is_file():
+        items.append(("index.html", INDEX_PATH))
     items.append(("manifest.json", MANIFEST_PATH))
     return items
 
@@ -151,6 +187,10 @@ class R2Client:
             f"https://{self.account_id}.r2.cloudflarestorage.com",
         ).rstrip("/")
         self.prefix = normalize_prefix(config.get("R2_PREFIX"))
+        try:
+            self.min_upload_rate = int(config.get("R2_MIN_UPLOAD_KBPS", DEFAULT_MIN_UPLOAD_KBPS)) * 1024
+        except ValueError as exc:
+            raise PushError("R2_MIN_UPLOAD_KBPS must be a whole number") from exc
         parsed = urllib.parse.urlparse(self.endpoint)
         if parsed.scheme != "https" or not parsed.netloc:
             raise PushError("R2_ENDPOINT must be an https URL")
@@ -174,6 +214,25 @@ class R2Client:
         query: dict[str, str] | None = None,
         body: bytes = b"",
         headers: dict[str, str] | None = None,
+    ) -> bytes:
+        for attempt in range(1, REQUEST_ATTEMPTS + 1):
+            try:
+                return self._request_once(method, key, query, body, headers)
+            except RetryableError as exc:
+                if attempt == REQUEST_ATTEMPTS:
+                    raise
+                delay = 2 ** attempt
+                print(f"    retry {attempt + 1}/{REQUEST_ATTEMPTS} in {delay}s: {exc}", flush=True)
+                time.sleep(delay)
+        raise AssertionError("unreachable")
+
+    def _request_once(
+        self,
+        method: str,
+        key: str,
+        query: dict[str, str] | None,
+        body: bytes,
+        headers: dict[str, str] | None,
     ) -> bytes:
         query = query or {}
         headers = {k.lower(): v for k, v in (headers or {}).items()}
@@ -224,18 +283,28 @@ class R2Client:
         if canonical_query:
             url += f"?{canonical_query}"
 
-        request = urllib.request.Request(url, data=body if method not in ("GET", "HEAD") else None, method=method)
+        if method in ("GET", "HEAD"):
+            data = None
+        elif body:
+            data = paced_body(body, self.min_upload_rate)
+        else:
+            data = body
+        request = urllib.request.Request(url, data=data, method=method)
         for key_name, value in headers.items():
             request.add_header(key_name, value)
 
+        label = f"R2 {method} {key or self.bucket} failed"
         try:
-            with urllib.request.urlopen(request) as response:
+            with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
                 return response.read()
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
-            raise PushError(f"R2 {method} {key or self.bucket} failed: HTTP {exc.code} {detail}") from exc
+            error_type = RetryableError if exc.code in RETRY_STATUS else PushError
+            raise error_type(f"{label}: HTTP {exc.code} {detail}") from exc
         except urllib.error.URLError as exc:
-            raise PushError(f"R2 {method} {key or self.bucket} failed: {exc.reason}") from exc
+            raise RetryableError(f"{label}: {exc.reason}") from exc
+        except (OSError, http.client.HTTPException) as exc:
+            raise RetryableError(f"{label}: {exc!r}") from exc
 
     def list_keys(self) -> list[str]:
         keys: list[str] = []
@@ -277,6 +346,8 @@ class R2Client:
             content_type = "application/zip"
         elif suffix == ".json":
             content_type = "application/json"
+        elif suffix == ".html":
+            content_type = "text/html; charset=utf-8"
         else:
             content_type = "application/octet-stream"
         headers = {

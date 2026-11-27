@@ -253,7 +253,8 @@ class Rom:
         )
         return (
             f'<article class="card" data-support="{"supported" if self.supported() else "unsupported"}" '
-            f'data-search="{e(self.haystack)}" style="--tint: {chip_color(self.family or self.display)}">'
+            f'data-bundle="{e(self.bundle_name)}" data-search="{e(self.haystack)}" '
+            f'style="--tint: {chip_color(self.family or self.display)}">'
             f'<div class="head"><div class="title"><span class="name">{e(self.display)}</span>{family}</div>{year}</div>'
             f'<div class="rom">{e(self.heading(collide))}</div>'
             f"{detail_html}"

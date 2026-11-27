@@ -262,6 +262,18 @@
         color: var(--text-muted);
         font-size: 0.78rem;
       }
+      .copy-link {
+        margin-left: auto;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+      .copy-link:hover {
+        border-color: var(--primary);
+        color: var(--text);
+      }
       .empty {
         margin: 2rem 0;
         text-align: center;
@@ -327,25 +339,38 @@
     </main>
     <script>
       (function () {
-        var field = document.getElementById("repo-url");
-        var copy = document.querySelector(".repo .copy");
-        function copied() {
-          copy.textContent = "Copied";
-          setTimeout(function () {
-            copy.textContent = "Copy";
-          }, 1500);
-        }
-        function fallback() {
-          field.select();
-          document.execCommand("copy");
-          copied();
-        }
-        copy.addEventListener("click", function () {
+        function copyText(text, button) {
+          var label = button.dataset.label || button.textContent;
+          button.dataset.label = label;
+          function copied() {
+            button.textContent = "Copied";
+            setTimeout(function () {
+              button.textContent = label;
+            }, 1500);
+          }
+          function fallback() {
+            var area = document.createElement("textarea");
+            area.value = text;
+            area.setAttribute("readonly", "");
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand("copy");
+            document.body.removeChild(area);
+            copied();
+          }
           if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(field.value).then(copied, fallback);
+            navigator.clipboard.writeText(text).then(copied, fallback);
           } else {
             fallback();
           }
+        }
+
+        var field = document.getElementById("repo-url");
+        var copy = document.querySelector(".repo .copy");
+        copy.addEventListener("click", function () {
+          copyText(field.value, copy);
         });
         copy.hidden = false;
 
@@ -357,21 +382,53 @@
         var cards = Array.prototype.slice.call(
           document.querySelectorAll(".card"),
         );
+        var pageUrl = location.href.split(/[?#]/)[0];
+
+        cards.forEach(function (item) {
+          var button = document.createElement("button");
+          button.type = "button";
+          button.className = "copy-link";
+          button.textContent = "Share";
+          button.addEventListener("click", function () {
+            copyText(
+              pageUrl + "?s=" + encodeURIComponent(item.dataset.bundle),
+              button,
+            );
+          });
+          (item.querySelector(".downloads") || item).appendChild(button);
+        });
+
+        function syncUrl() {
+          try {
+            var url = new URL(location.href);
+            if (search.value.trim()) {
+              url.searchParams.set("s", search.value);
+            } else {
+              url.searchParams.delete("s");
+            }
+            history.replaceState(null, "", url);
+          } catch (error) {}
+        }
 
         function apply() {
           var shown = {};
           toggles.forEach(function (toggle) {
             shown[toggle.dataset.support] = toggle.checked;
           });
-          var words = search.value.toLowerCase().split(/\s+/).filter(Boolean);
+          var needle = search.value.trim().toLowerCase();
+          var words = needle.split(/\s+/).filter(Boolean);
+          var exact = cards.some(function (item) {
+            return item.dataset.bundle.toLowerCase() === needle;
+          });
           var visible = 0;
           cards.forEach(function (item) {
             var haystack = item.dataset.search;
-            var match =
-              shown[item.dataset.support] &&
-              words.every(function (word) {
-                return haystack.indexOf(word) !== -1;
-              });
+            var found = exact
+              ? item.dataset.bundle.toLowerCase() === needle
+              : words.every(function (word) {
+                  return haystack.indexOf(word) !== -1;
+                });
+            var match = shown[item.dataset.support] && found;
             item.hidden = !match;
             if (match) visible++;
           });
@@ -382,7 +439,11 @@
           empty.hidden = visible !== 0;
         }
 
-        search.addEventListener("input", apply);
+        search.value = new URLSearchParams(location.search).get("s") || "";
+        search.addEventListener("input", function () {
+          apply();
+          syncUrl();
+        });
         toggles.forEach(function (toggle) {
           toggle.addEventListener("change", apply);
         });
